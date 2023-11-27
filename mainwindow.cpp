@@ -1,0 +1,639 @@
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+
+#include <QSqlQuery>
+#include <QDebug>
+#include <QSqlError>
+MainWindow::MainWindow(QWidget *parent):
+    QMainWindow(parent),
+    ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
+    //Para crear la tabla que muestro en el QTable widget
+    QStringList encabezado;
+    ui->tableWidgetInformacion->setColumnCount(9);
+    encabezado<<"Marca"<<"Modelo"<<"Chapa"<<"Km recorridos"<<"Mant recibidos"<<"Precio Renta"<<"Alquilado"<<"Dias renta"<<"Estado Mant";
+    ui->tableWidgetInformacion->setHorizontalHeaderLabels(encabezado);
+    //mostrar pantalla bienvenida
+    //this->pantallaBienvenida->show();
+    //this->hide();
+    //verificar si ya hay una empresa
+    if(controlador.verificarEmpresa()){
+        try{
+            controlador.exportarNombreEmpresa(nombreEmpresa);
+            controlador.exportarDineroEmpresa(dineroEmpresa);
+            empresa.setNombreEmpresa(nombreEmpresa);
+            empresa.setDineroTotal(dineroEmpresa);
+            this->show();
+        }
+        catch(data_base_error_acceso &exc){
+            QMessageBox::information(this,"Error",exc.what());
+        }
+        catch(data_base_nombre_empresa &exc){
+            QMessageBox::information(this,"Error",exc.what());
+        }
+        catch(valor_invalido &exc){
+            QMessageBox::information(this,"Error",exc.what());
+        }
+        qDebug()<<"sirvio";
+    }
+    else{
+        this->pantallaBienvenida->show();
+        this->hide();
+        qDebug()<<" no sirvio";
+    }
+
+    try{
+        //cargo la base de dato
+        controlador.exportarVector(listado);
+    }
+     catch (data_base_exportar_vector &exc){
+        QMessageBox::information(this,"Error",exc.what());
+    }
+    //CARGAR LOS COMBOBOX CON LOS DATOS DEL VECTORPRINCIPIO DE LA APLICACION
+    for(int i=0 ; i<listado.size();i++){
+        if(listado[i].getEstadoAlquilado()==0 ){
+            ui->comboBoxRentarAuto->addItem(listado[i].getMarca()+"/"+listado[i].getModelo()+"/"+listado[i].getChapa());
+           }
+        if(listado[i].getEstadoAlquilado()==1){
+            ui->comboBoxRecibirAuto->addItem(listado[i].getMarca()+"/"+listado[i].getModelo()+"/"+listado[i].getChapa());
+               }
+    }
+    qDebug()<<empresa.getNombreEmpresa();
+    QString cadena=empresa.getNombreEmpresa();
+    cadena+=" empresa especializada en la renta de autos.";
+    ui->lineEditPiePagina->setText(cadena);//mostrar info en la parte del final de la aplicacion
+
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+    Controlador::~Controlador;
+}
+
+
+void MainWindow::ordenarCantDias( QVector<Auto>& lista)
+{
+    for(int i=1 ; i<lista.size(); i++){
+        for(int j=0; j<lista.size()-1;j++){
+            if(lista[j].getDiasAlquilado() <= lista[j+1].getDiasAlquilado()){
+                std::swap(lista[j],lista[j+1]);
+            }
+        }
+    }
+}
+
+void MainWindow::ordenarCantKm(QVector<Auto> &lista)
+{
+    for(int i=1 ; i<lista.size(); i++){
+        for(int j=0; j<lista.size()-1;j++){
+            if(lista[j].getKilometrosRecorridos() <= lista[j+1].getKilometrosRecorridos()){
+                std::swap(lista[j],lista[j+1]);
+            }
+        }
+    }
+}
+
+
+//boton agregar con excepcion
+void MainWindow::on_pushButtonAgregar_clicked()
+{
+ ////// ***OJO***  ui->lineEdit_10->setText(QString::number(pantallaBienvenida->registro[0].getDineroTotal())) ;
+
+     QString marca;
+     QString modelo;
+     QString chapa;
+     float kilometrosRecorridos;
+     int cantMantenimientos;
+     float precioRenta;
+     int estadoAlquilado=0;
+     int estadoMantenimiento=0;
+     int diasAlquilados=0;
+     long long precioCarro;
+        modelo=ui->lineEditModelo->text();
+        chapa=ui->lineEditChapa->text();
+        marca=ui->lineEditMarca->text();
+        kilometrosRecorridos=ui->spinBoxKm->value();
+        cantMantenimientos=ui->spinBoxCantMant->value();
+        precioRenta=ui->spinBoxPrecioRenta->value();
+        precioCarro=ui->spinBoxPrecioAuto->value();
+       try{
+        controlador.exportarDineroEmpresa(dineroEmpresa);
+        controlador.exportarNombreEmpresa(nombreEmpresa);
+
+         }
+        catch (data_base_error_acceso & exc){
+            QMessageBox::information(this,"Error",exc.what());
+        }
+        catch (data_base_nombre_empresa & exc){
+
+            QMessageBox::information(this,"Error",exc.what());
+        }
+
+        if(precioCarro<=dineroEmpresa){//para ver si le alcanza el dinero
+            //busco una excepcion
+           try{
+                Auto temp(marca,modelo,chapa,kilometrosRecorridos,cantMantenimientos,precioRenta,estadoAlquilado,estadoMantenimiento,diasAlquilados);
+                listado.append(temp);
+                //actualizar los combobox al agregr un auto
+                if(temp.getEstadoAlquilado()==0 and temp.getEstadoMantenimiento()==0){
+                    ui->comboBoxRentarAuto->addItem(temp.getMarca()+"/"+temp.getModelo()+"/"+temp.getChapa());
+                   }
+                if(temp.getEstadoAlquilado()==1){
+                    ui->comboBoxRecibirAuto->addItem(temp.getMarca()+"/"+temp.getModelo()+"/"+temp.getChapa());
+                       }
+                //actualizo la base de dato con el nuevo auto.
+                controlador.agregarAuto(temp);
+                //actualizo la cantidad de dinero de la empresa en la base de dato
+                dineroEmpresa-=precioCarro;
+                controlador.modificarDineroEmpresa(dineroEmpresa,nombreEmpresa);
+                empresa.setDineroTotal(dineroEmpresa);
+                QMessageBox::information(this,"Exito","Se ha agregado un nuevo auto exitosamente");
+            }
+            catch(chapa_invalida &exc){
+                QMessageBox::information(this,"Error",exc.what());
+
+            }
+            catch(marca_invalida &exc){
+                QMessageBox::information(this,"Error",exc.what());
+            }
+            catch(modificar_dinero_empresa &exc){
+                QMessageBox::information(this,"Error",exc.what());
+
+            }
+            catch(valor_invalido &exc ){
+                QMessageBox::information(this,"Error",exc.what());
+            }
+        }
+        else{
+            QMessageBox::information(this,"Error","No tiene dinero suficiente");
+        }
+
+
+      ui->lineEditChapa->setText("");
+      ui->lineEditMarca->setText("");
+      ui->lineEditModelo->setText("");
+      ui->spinBoxKm->setValue(0);
+      ui->spinBoxCantMant->setValue(0);
+      ui->spinBoxPrecioRenta->setValue(1);
+      ui->spinBoxPrecioAuto->setValue(0);
+
+
+}
+
+
+//boton para rentar con excepcion
+void MainWindow::on_pushButtonRentar_clicked()
+{
+     QString marca;
+     QString modelo;
+     QString chapa;
+     QString cadena=ui->comboBoxRentarAuto->currentText();
+     int indice=ui->comboBoxRentarAuto->currentIndex();
+     int dias =ui->spinBoxRentaDias->value();
+     int temPrecioRenta;
+     separarDatos(cadena,marca, modelo, chapa);
+     bool bandera=false;
+     for(int i=0 ;i<listado.size();i++){
+         if(listado[i].getMarca()== marca and listado[i].getModelo()==modelo and listado[i].getChapa()==chapa and listado[i].getEstadoMantenimiento()!=1 and listado[i].getEstadoAlquilado()!=1 ){
+            listado[i].setEstadoAlquilado(1);
+            listado[i].setDiasAlquilados(dias);
+            temPrecioRenta=listado[i].getPrecioRenta();
+            bandera=true;
+            break;
+         }
+         else{
+             continue;
+         }
+
+     }
+     if(bandera==true){
+
+         try{
+         //Modifico la base de datos para actualizar el auto que se rento
+         controlador.modificarRentarAuto(marca,modelo,chapa,dias);
+         ui->comboBoxRentarAuto->removeItem(indice);
+         ui->comboBoxRecibirAuto->addItem(cadena);
+
+         //modificar el dinero de la mepresa
+         controlador.exportarDineroEmpresa(dineroEmpresa);
+         controlador.exportarNombreEmpresa(nombreEmpresa);
+         dineroEmpresa=dineroEmpresa+(dias*temPrecioRenta);
+         controlador.modificarDineroEmpresa(dineroEmpresa,nombreEmpresa);
+         empresa.setDineroTotal(dineroEmpresa);
+         QString mensaje="Se ha rentado el auto ";
+         mensaje.append( marca + " modelo "+ modelo + " y chapa "+ " por " +QString::number(dias)+ " dias.");
+         QMessageBox::information(this,"Exitos",mensaje);
+        }
+         catch(data_base_actualizar &exc){
+             QMessageBox::information(this,"Error",exc.what());
+         }
+         catch(data_base_nombre_empresa &exc){
+             QMessageBox::information(this,"Error",exc.what());
+         }
+         catch(data_base_error_acceso &exc){
+             QMessageBox::information(this,"Error",exc.what());
+         }
+         catch (modificar_dinero_empresa &exc){
+             QMessageBox::information(this,"Error",exc.what());
+         }
+         catch (valor_invalido &exc){
+             QMessageBox::information(this,"Error",exc.what());
+         }
+     }
+     else{
+         QMessageBox::information(this,"Error","No se pudo rentar, verifique la informacion o asegurese del que el auto se pueda renatr ");
+     }
+
+
+}
+
+//boton recibir con excepcion
+void MainWindow::on_pushButtonRecibir_clicked()
+{
+
+    QString marca;
+    QString modelo;
+    QString chapa;
+    QString cadena=ui->comboBoxRecibirAuto->currentText();
+    int indice=ui->comboBoxRecibirAuto->currentIndex();
+    int kmRecorridos=ui->spinBoxKmRecorridos->value();
+    int nuevoValorKm;
+    separarDatos(cadena,marca, modelo, chapa);
+    bool bandera=false;
+    for(int i=0 ;i<listado.size();i++){
+        if(listado[i].getMarca()== marca and listado[i].getModelo()==modelo and listado[i].getChapa()==chapa and listado[i].getEstadoAlquilado()==1 ){
+           listado[i].setEstadoAlquilado(0);
+           listado[i].setDiasAlquilados(0);
+           nuevoValorKm=listado[i].getKilometrosRecorridos()+kmRecorridos;//guardo el valor de todos los kmm recorridos por ese auto para poder pasarlo a la base de dato
+           listado[i].setKilometrosRecorridos(nuevoValorKm);
+           bandera=true;
+           break;
+        }
+        else{
+            continue;
+        }
+
+    }
+    if(bandera==true){
+
+        try{
+        //modificar el auto en la base de dato
+        controlador.modificarRecibirAuto(marca,modelo,chapa,nuevoValorKm);
+        ui->comboBoxRecibirAuto->removeItem(indice);
+        ui->comboBoxRentarAuto->addItem(cadena);
+
+        QString mensaje="Se ha entregado el auto ";
+        mensaje.append( marca + " modelo "+ modelo + " y chapa "+ " con " +QString::number(kmRecorridos)+ " km recorridos.");
+        QMessageBox::information(this,"Exitos",mensaje);
+        }
+        catch (data_base_actualizar &exc){
+        QMessageBox::information(this,"Exitos",exc.what());
+
+        }
+
+    }
+    else{
+        QMessageBox::information(this,"Error","No se pudo entregar, verifique la informacion o asegurese del que el auto se pueda entregar ");
+
+    }
+
+}
+
+//boton para mostrar con excepcio
+void MainWindow::on_pushButtonMostrar_clicked()
+{
+    if(ui->radioButtonMostrarDias->isChecked()){
+        ui->tableWidgetInformacion->setRowCount(0);
+        ordenarCantDias(listado);
+        for(int i=0 ;i<listado.size();i++){
+            if(listado[i].getDiasAlquilado()!=0){
+            ui->tableWidgetInformacion->insertRow(ui->tableWidgetInformacion->rowCount());
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,0,new QTableWidgetItem(listado[i].getMarca()));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,1,new QTableWidgetItem(listado[i].getModelo()));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,2,new QTableWidgetItem(listado[i].getChapa()));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,3,new QTableWidgetItem(QString::number(listado[i].getKilometrosRecorridos())));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,4,new QTableWidgetItem(QString::number(listado[i].getCantMantenimientos())));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,5,new QTableWidgetItem(QString::number(listado[i].getPrecioRenta())));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,6,new QTableWidgetItem(listado[i].getEstadoAlquilado()==1?"Sí":"No"));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,7,new QTableWidgetItem(QString::number(listado[i].getDiasAlquilado())));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,8,new QTableWidgetItem(listado[i].getEstadoMantenimiento()==1?"Sí":"No"));
+            }
+        }
+    }
+    if(ui->radioButtonMostrarTodosAutos->isChecked()){
+        ui->tableWidgetInformacion->setRowCount(0);
+        for(int i=0 ;i<listado.size();i++){
+            ui->tableWidgetInformacion->insertRow(ui->tableWidgetInformacion->rowCount());
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,0,new QTableWidgetItem(listado[i].getMarca()));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,1,new QTableWidgetItem(listado[i].getModelo()));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,2,new QTableWidgetItem(listado[i].getChapa()));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,3,new QTableWidgetItem(QString::number(listado[i].getKilometrosRecorridos())));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,4,new QTableWidgetItem(QString::number(listado[i].getCantMantenimientos())));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,5,new QTableWidgetItem(QString::number(listado[i].getPrecioRenta())));
+           ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,6,new QTableWidgetItem(listado[i].getEstadoAlquilado()==1?"Sí":"No"));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,7,new QTableWidgetItem(QString::number(listado[i].getDiasAlquilado())));
+             ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,8,new QTableWidgetItem(listado[i].getEstadoMantenimiento()==1?"Sí":"No"));
+            }
+    }
+    if(ui->radioButtonNecesitanMantenimineto->isChecked()){
+        ui->tableWidgetInformacion->setRowCount(0);
+        for(int i=0 ;i<listado.size();i++){
+            if(listado[i].getKilometrosRecorridos()>=10000){
+            ui->tableWidgetInformacion->insertRow(ui->tableWidgetInformacion->rowCount());
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,0,new QTableWidgetItem(listado[i].getMarca()));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,1,new QTableWidgetItem(listado[i].getModelo()));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,2,new QTableWidgetItem(listado[i].getChapa()));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,3,new QTableWidgetItem(QString::number(listado[i].getKilometrosRecorridos())));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,4,new QTableWidgetItem(QString::number(listado[i].getCantMantenimientos())));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,5,new QTableWidgetItem(QString::number(listado[i].getPrecioRenta())));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,6,new QTableWidgetItem(listado[i].getEstadoAlquilado()==1?"Sí":"No"));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,7,new QTableWidgetItem(QString::number(listado[i].getDiasAlquilado())));
+             ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,8,new QTableWidgetItem(listado[i].getEstadoMantenimiento()==1?"Sí":"No"));
+            }
+        }
+    }
+
+    if(ui->radioButtonMostrarCantidadKm->isChecked()){
+        ordenarCantKm(listado);
+        ui->tableWidgetInformacion->setRowCount(0);
+        for(int i=0 ;i<listado.size();i++){
+            ui->tableWidgetInformacion->insertRow(ui->tableWidgetInformacion->rowCount());
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,0,new QTableWidgetItem(listado[i].getMarca()));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,1,new QTableWidgetItem(listado[i].getModelo()));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,2,new QTableWidgetItem(listado[i].getChapa()));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,3,new QTableWidgetItem(QString::number(listado[i].getKilometrosRecorridos())));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,4,new QTableWidgetItem(QString::number(listado[i].getCantMantenimientos())));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,5,new QTableWidgetItem(QString::number(listado[i].getPrecioRenta())));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,6,new QTableWidgetItem(listado[i].getEstadoAlquilado()==1?"Sí":"No"));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,7,new QTableWidgetItem(QString::number(listado[i].getDiasAlquilado())));
+            ui->tableWidgetInformacion->setItem(ui->tableWidgetInformacion->rowCount()-1,8,new QTableWidgetItem(listado[i].getEstadoMantenimiento()==1?"Sí":"No"));
+            }
+    }
+  if(ui->radioButtonMostrarDineroEmpresa->isChecked()){
+      try{
+      controlador.exportarDineroEmpresa(dineroEmpresa);
+      QMessageBox::information(this,"Exito","El dinero actual de la empresa es $"+QString::number(dineroEmpresa));
+       }
+      catch (data_base_error_acceso &exc){
+          QMessageBox::information(this,"Exito", exc.what());
+      }
+    }
+}
+
+//limpiar base de dato con excepcion
+void MainWindow::on_actionBorrar_datos_del_sistema_triggered()
+{
+    int opcion=QMessageBox::question(this,"Confirmar?"," Para borrar el sistema se debe cerrar el programa. Despues inicielo de nuevo.",QMessageBox::Yes|QMessageBox::No);
+    if(opcion==QMessageBox::Yes){
+        try{
+            //limpio la tabla de los autos
+            controlador.limpiarBaseDato();
+            //limpio el vector
+            listado.erase(listado.begin(),listado.end());
+            //limpio la tabla empresa
+            controlador.limpiarTablaEmpresa();
+            this->close();
+        }
+        catch(data_base_borrar &exc){
+            QMessageBox::information(this,"Error", exc.what());
+        }
+
+    }
+}
+
+void MainWindow::separarDatos(QString cadena,QString & marca ,QString & modelo ,QString & chapa)
+{
+    int aux=0;
+ for(int i=0 ;i<cadena.size();i++){
+     if(cadena[i]!='/'){
+         marca+=cadena[i];
+     }
+     else{
+         aux=i+1;
+         break;
+     }
+ }
+ for(int i=aux;i<cadena.size();i++){
+     if(cadena[i]!='/'){
+         modelo+=cadena[i];
+     }
+     else{
+         aux=i+1;
+         break;
+     }
+ }
+ for(int i=aux;i<cadena.size();i++){
+     if(cadena[i]!='/'){
+         chapa+=cadena[i];
+     }
+     else{
+         aux=i;
+         break;
+     }
+ }
+}
+
+void MainWindow::on_radioButtonSacarMantenimiento_clicked()
+{   ui->comboBoxOperacionMantenimiento->clear();
+    ui->spinBoxPrecioMantenimiento->setEnabled(false);
+    if(ui->radioButtonSacarMantenimiento->isChecked()){
+        for(int i=0; i<listado.size();i++){
+            if(listado[i].getEstadoMantenimiento()==1){
+                ui->comboBoxOperacionMantenimiento->addItem(listado[i].getMarca()+"/"+listado[i].getModelo()+"/"+listado[i].getChapa());
+            }
+        }
+
+    }
+
+
+}
+
+void MainWindow::on_radioButtonMandarMantenimiento_clicked()
+{    ui->spinBoxPrecioMantenimiento->setEnabled(true);
+     ui->comboBoxOperacionMantenimiento->clear();
+     if( ui->radioButtonMandarMantenimiento->isChecked() ){
+         for(int i=0; i<listado.size();i++){
+             if(listado[i].getKilometrosRecorridos()>10000){
+                 ui->comboBoxOperacionMantenimiento->addItem(listado[i].getMarca()+"/"+listado[i].getModelo()+"/"+listado[i].getChapa());
+             }
+            else{
+
+             }
+         }
+     }
+
+
+}
+
+void MainWindow::on_radioButtonDarBaja_clicked()
+{
+     ui->comboBoxOperacionMantenimiento->clear();
+     if(ui->radioButtonDarBaja->isChecked()){
+         for(int i=0; i<listado.size();i++){
+             if(listado[i].getCantMantenimientos()>=10){
+                 ui->comboBoxOperacionMantenimiento->addItem(listado[i].getMarca()+"/"+listado[i].getModelo()+"/"+listado[i].getChapa());
+             }
+         }
+     }
+     ui->spinBoxPrecioMantenimiento->setEnabled(false);
+}
+
+
+//operciones relacionadas al mantenimiento con excepcion
+void MainWindow::on_pushButtonAceptarMantenimiento_clicked()
+{
+    //sacar de mantenimiento
+    if(ui->radioButtonSacarMantenimiento->isChecked()){
+        QString marca;
+        QString modelo;
+        QString chapa;
+        QString cadena=ui->comboBoxOperacionMantenimiento->currentText();
+        int indice=ui->comboBoxOperacionMantenimiento->currentIndex();
+        separarDatos(cadena,marca, modelo,chapa);
+        bool bandera=false;
+        for(int i=0 ;i<listado.size();i++){
+            if(listado[i].getMarca()== marca and listado[i].getModelo()==modelo and listado[i].getChapa()==chapa and listado[i].getEstadoMantenimiento()==1  ){
+               listado[i].setEstadoMantenimiento(0);//modifico su estado a que no esta en mant
+               bandera=true;
+               break;
+            }
+            else{
+                continue;
+            }
+        }
+        if(bandera==true){
+            try{
+                //modificar el auto sacado de la base de dato
+                controlador.sacarAutoMantenimiento(marca,modelo,chapa);
+                ui->comboBoxOperacionMantenimiento->removeItem(indice);
+
+                QString mensaje="Se ha sacado de mantenimiento el auto ";
+                mensaje.append( marca + " modelo "+ modelo + " y chapa " + chapa);
+                QMessageBox::information(this,"Exitos",mensaje);
+                //modificar el auto sacado de la base de dato
+                controlador.sacarAutoMantenimiento(marca,modelo,chapa);
+                ui->comboBoxOperacionMantenimiento->removeItem(indice);
+            }
+            catch (data_base_actualizar &exc){
+                QMessageBox::information(this,"Exitos",exc.what());
+            }
+
+        }
+
+    }
+//--------------------------------MANDAR A MANTENIMIENTO -----------------------------------------------------------------
+
+    if(ui->radioButtonMandarMantenimiento->isChecked()){
+        QString marca;
+        QString modelo;
+        QString chapa;
+        QString cadena=ui->comboBoxOperacionMantenimiento->currentText();
+        int indice=ui->comboBoxOperacionMantenimiento->currentIndex();
+        int nuevoValorCantMantenimientos;
+        long long tempPrecioMantenimiento;
+        tempPrecioMantenimiento=ui->spinBoxPrecioMantenimiento->value();
+        //verificar si la mepresa puede costear el mantenimiento
+        controlador.exportarDineroEmpresa(dineroEmpresa);
+        controlador.exportarNombreEmpresa(nombreEmpresa);
+
+        if(tempPrecioMantenimiento<=dineroEmpresa){
+            separarDatos(cadena,marca, modelo, chapa);
+            bool bandera=false;
+            for(int i=0 ;i<listado.size();i++){
+                if(listado[i].getMarca()== marca and listado[i].getModelo()==modelo and listado[i].getChapa()==chapa and listado[i].getKilometrosRecorridos()>=10000 and listado[i].getEstadoAlquilado()==0 ){
+                   listado[i].setEstadoMantenimiento(1); //Activo que esta en mantenimiento
+                   nuevoValorCantMantenimientos=listado[i].getCantMantenimientos()+1;
+                   listado[i].setCantMantenimientos(nuevoValorCantMantenimientos);//modifico la cantidad de mantenimiento recibidos
+                   listado[i].setKilometrosRecorridos(0);// restablezco los km a cero
+                   bandera=true;
+                   break;
+                }
+                else{
+                    continue;
+                }
+
+            }
+            if(bandera){
+                try{
+                ui->comboBoxOperacionMantenimiento->removeItem(indice);//lo elimino de los disponibles a mantenimiento.
+                controlador.mandarAutoMantenimiento(marca,modelo,chapa,nuevoValorCantMantenimientos);
+                dineroEmpresa-=tempPrecioMantenimiento;
+                controlador.modificarDineroEmpresa(dineroEmpresa,nombreEmpresa);
+                empresa.setDineroTotal(dineroEmpresa);
+                QString mensaje="Se ha mandado a mantenimiento el auto ";
+                mensaje.append( marca + " modelo "+ modelo + " y chapa " + chapa);
+                QMessageBox::information(this,"Exitos",mensaje);
+                  }
+                catch(data_base_actualizar &exc){
+                    QMessageBox::information(this,"Exitos",exc.what());
+                }
+                catch(modificar_dinero_empresa &exc){
+                    QMessageBox::information(this,"Exitos",exc.what());
+                }
+                catch(valor_invalido &exc){
+                    QMessageBox::information(this,"Exitos",exc.what());
+                }
+
+            }
+        }
+        else{
+            QMessageBox::information(this,"Error","La empresa no puede costaer el mantenimiento");
+        }
+
+    }
+//-----------------------------------DAR de BAJA----------------------------------------
+   if(ui->radioButtonDarBaja->isChecked()){
+       QString marca;
+       QString modelo;
+       QString chapa;
+       QString cadena=ui->comboBoxOperacionMantenimiento->currentText();
+       int indice=ui->comboBoxOperacionMantenimiento->currentIndex();
+       separarDatos(cadena,marca, modelo, chapa);
+       bool bandera=false;
+       for(int i=0 ;i<listado.size();i++){
+           if(listado[i].getMarca()== marca and listado[i].getModelo()==modelo and listado[i].getChapa()==chapa){
+              listado.erase(listado.begin()+i);//doy de baja al auto, lo elimino del vector
+              try{
+              controlador.darBajaAuto(marca,modelo,chapa);
+              }
+              catch (data_base_actualizar &exc){
+                  QMessageBox::information(this,"Error",exc.what());
+              }
+
+              ui->comboBoxOperacionMantenimiento->removeItem(indice);//actualizo los combobox
+              QString mensaje="Se ha dado de baja a el auto ";
+              mensaje.append( marca + " modelo "+ modelo + " y chapa " + chapa);
+              QMessageBox::information(this,"Exitos",mensaje);
+              break;
+           }
+           else{
+               continue;
+           }
+       }
+
+   }
+}
+
+
+//actualizar los combobox cada vez que entro a la sesion y la tabla de mostrar
+void MainWindow::on_tabWidget_tabBarClicked(int index)
+{
+    ui->comboBoxRentarAuto->clear();
+    ui->comboBoxRecibirAuto->clear();
+    for(int i=0 ; i<listado.size();i++){
+        if(listado[i].getEstadoAlquilado()==0 and listado[i].getEstadoMantenimiento()==0 ){
+            ui->comboBoxRentarAuto->addItem(listado[i].getMarca()+"/"+listado[i].getModelo()+"/"+listado[i].getChapa());
+           }
+        if(listado[i].getEstadoAlquilado()==1 and listado[i].getEstadoMantenimiento()==0){
+            ui->comboBoxRecibirAuto->addItem(listado[i].getMarca()+"/"+listado[i].getModelo()+"/"+listado[i].getChapa());
+               }
+    }
+    ui->tableWidgetInformacion->setRowCount(0);
+
+
+
+}
+
+
