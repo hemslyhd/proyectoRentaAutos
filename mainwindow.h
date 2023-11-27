@@ -77,6 +77,7 @@ private:
 
       QString nombreEmpresa;
       long long dineroEmpresa;
+      int contador=0;
 
 
 

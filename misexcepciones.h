@@ -77,6 +77,13 @@ public:
  data_base_exportar_vector(string info = "no se pudo de la base de dato al vector")
  : runtime_error(info) {}
 };
+//exportar cantiautos de empresa
+class data_base_error_cantAutos : public runtime_error
+{
+public:
+ data_base_error_cantAutos(string info = "no se pudo acceder a la base de dato ")
+ : runtime_error(info) {}
+};
 
 #endif // MISEXCEPCIONES
 

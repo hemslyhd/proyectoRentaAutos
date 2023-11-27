@@ -7,16 +7,16 @@ class Renta
 private:
     QString nombreEmpresa;
     double dineroTotal;
-
+    int cantTotalAuto;
 public:
     Renta();
-    Renta(QString,double);
+    Renta(QString,double,int);
     ~Renta();
     void setNombreEmpresa(QString);
-
+    void setCantTotalAutos(int);
     void setDineroTotal(double);
     QString getNombreEmpresa(){return this->nombreEmpresa;}
-
+    int getCantTotalAutos(){return this->cantTotalAuto;}
     double getDineroTotal(){return this->dineroTotal;}
 };
 

@@ -45,6 +45,10 @@ MainWindow::MainWindow(QWidget *parent):
         this->pantallaBienvenida->show();
         this->hide();
         qDebug()<<" no sirvio";
+        //para que me salga cuando se crea por primera vez la empresa
+        QString cadena=empresa.getNombreEmpresa();
+        cadena+=" empresa especializada en la renta de autos.";
+        ui->lineEditPiePagina->setText(cadena);//mostrar info en la parte del final de la aplicacion
     }
 
     try{
@@ -104,76 +108,84 @@ void MainWindow::ordenarCantKm(QVector<Auto> &lista)
 void MainWindow::on_pushButtonAgregar_clicked()
 {
  ////// ***OJO***  ui->lineEdit_10->setText(QString::number(pantallaBienvenida->registro[0].getDineroTotal())) ;
-
-     QString marca;
-     QString modelo;
-     QString chapa;
-     float kilometrosRecorridos;
-     int cantMantenimientos;
-     float precioRenta;
-     int estadoAlquilado=0;
-     int estadoMantenimiento=0;
-     int diasAlquilados=0;
-     long long precioCarro;
-        modelo=ui->lineEditModelo->text();
-        chapa=ui->lineEditChapa->text();
-        marca=ui->lineEditMarca->text();
-        kilometrosRecorridos=ui->spinBoxKm->value();
-        cantMantenimientos=ui->spinBoxCantMant->value();
-        precioRenta=ui->spinBoxPrecioRenta->value();
-        precioCarro=ui->spinBoxPrecioAuto->value();
-       try{
-        controlador.exportarDineroEmpresa(dineroEmpresa);
-        controlador.exportarNombreEmpresa(nombreEmpresa);
-
-         }
-        catch (data_base_error_acceso & exc){
-            QMessageBox::information(this,"Error",exc.what());
-        }
-        catch (data_base_nombre_empresa & exc){
-
-            QMessageBox::information(this,"Error",exc.what());
-        }
-
-        if(precioCarro<=dineroEmpresa){//para ver si le alcanza el dinero
-            //busco una excepcion
-           try{
-                Auto temp(marca,modelo,chapa,kilometrosRecorridos,cantMantenimientos,precioRenta,estadoAlquilado,estadoMantenimiento,diasAlquilados);
-                listado.append(temp);
-                //actualizar los combobox al agregr un auto
-                if(temp.getEstadoAlquilado()==0 and temp.getEstadoMantenimiento()==0){
-                    ui->comboBoxRentarAuto->addItem(temp.getMarca()+"/"+temp.getModelo()+"/"+temp.getChapa());
-                   }
-                if(temp.getEstadoAlquilado()==1){
-                    ui->comboBoxRecibirAuto->addItem(temp.getMarca()+"/"+temp.getModelo()+"/"+temp.getChapa());
-                       }
-                //actualizo la base de dato con el nuevo auto.
-                controlador.agregarAuto(temp);
-                //actualizo la cantidad de dinero de la empresa en la base de dato
-                dineroEmpresa-=precioCarro;
-                controlador.modificarDineroEmpresa(dineroEmpresa,nombreEmpresa);
-                empresa.setDineroTotal(dineroEmpresa);
-                QMessageBox::information(this,"Exito","Se ha agregado un nuevo auto exitosamente");
-            }
-            catch(chapa_invalida &exc){
-                QMessageBox::information(this,"Error",exc.what());
+    int aux;
+    controlador.exportarCantAutos(aux);
+    empresa.setCantTotalAutos(aux);
+    if(contador<empresa.getCantTotalAutos()){
+        QString marca;
+        QString modelo;
+        QString chapa;
+        float kilometrosRecorridos;
+        int cantMantenimientos;
+        float precioRenta;
+        int estadoAlquilado=0;
+        int estadoMantenimiento=0;
+        int diasAlquilados=0;
+        long long precioCarro;
+           modelo=ui->lineEditModelo->text();
+           chapa=ui->lineEditChapa->text();
+           marca=ui->lineEditMarca->text();
+           kilometrosRecorridos=ui->spinBoxKm->value();
+           cantMantenimientos=ui->spinBoxCantMant->value();
+           precioRenta=ui->spinBoxPrecioRenta->value();
+           precioCarro=ui->spinBoxPrecioAuto->value();
+          try{
+           controlador.exportarDineroEmpresa(dineroEmpresa);
+           controlador.exportarNombreEmpresa(nombreEmpresa);
 
             }
-            catch(marca_invalida &exc){
-                QMessageBox::information(this,"Error",exc.what());
-            }
-            catch(modificar_dinero_empresa &exc){
-                QMessageBox::information(this,"Error",exc.what());
+           catch (data_base_error_acceso & exc){
+               QMessageBox::information(this,"Error",exc.what());
+           }
+           catch (data_base_nombre_empresa & exc){
 
-            }
-            catch(valor_invalido &exc ){
-                QMessageBox::information(this,"Error",exc.what());
-            }
-        }
-        else{
-            QMessageBox::information(this,"Error","No tiene dinero suficiente");
-        }
+               QMessageBox::information(this,"Error",exc.what());
+           }
 
+           if(precioCarro<=dineroEmpresa){//para ver si le alcanza el dinero
+               //busco una excepcion
+              try{
+                   Auto temp(marca,modelo,chapa,kilometrosRecorridos,cantMantenimientos,precioRenta,estadoAlquilado,estadoMantenimiento,diasAlquilados);
+                   listado.append(temp);
+                   contador++;
+                   //actualizar los combobox al agregr un auto
+                   if(temp.getEstadoAlquilado()==0 and temp.getEstadoMantenimiento()==0){
+                       ui->comboBoxRentarAuto->addItem(temp.getMarca()+"/"+temp.getModelo()+"/"+temp.getChapa());
+                      }
+                   if(temp.getEstadoAlquilado()==1){
+                       ui->comboBoxRecibirAuto->addItem(temp.getMarca()+"/"+temp.getModelo()+"/"+temp.getChapa());
+                          }
+                   //actualizo la base de dato con el nuevo auto.
+                   controlador.agregarAuto(temp);
+                   //actualizo la cantidad de dinero de la empresa en la base de dato
+                   dineroEmpresa-=precioCarro;
+                   controlador.modificarDineroEmpresa(dineroEmpresa,nombreEmpresa);
+                   empresa.setDineroTotal(dineroEmpresa);
+                   QMessageBox::information(this,"Exito","Se ha agregado un nuevo auto exitosamente");
+               }
+               catch(chapa_invalida &exc){
+                   QMessageBox::information(this,"Error",exc.what());
+
+               }
+               catch(marca_invalida &exc){
+                   QMessageBox::information(this,"Error",exc.what());
+               }
+               catch(modificar_dinero_empresa &exc){
+                   QMessageBox::information(this,"Error",exc.what());
+
+               }
+               catch(valor_invalido &exc ){
+                   QMessageBox::information(this,"Error",exc.what());
+               }
+           }
+           else{
+               QMessageBox::information(this,"Error","No tiene dinero suficiente");
+           }
+
+    }
+    else{
+        QMessageBox::information(this,"Error","Ya llego al numero maximo de autos que la empresa puede tener");
+    }
 
       ui->lineEditChapa->setText("");
       ui->lineEditMarca->setText("");
@@ -182,6 +194,11 @@ void MainWindow::on_pushButtonAgregar_clicked()
       ui->spinBoxCantMant->setValue(0);
       ui->spinBoxPrecioRenta->setValue(1);
       ui->spinBoxPrecioAuto->setValue(0);
+    qDebug()<<empresa.getCantTotalAutos();
+    qDebug()<<empresa.getDineroTotal();
+    qDebug()<<empresa.getNombreEmpresa();
+
+
 
 
 }
@@ -598,9 +615,11 @@ void MainWindow::on_pushButtonAceptarMantenimiento_clicked()
        bool bandera=false;
        for(int i=0 ;i<listado.size();i++){
            if(listado[i].getMarca()== marca and listado[i].getModelo()==modelo and listado[i].getChapa()==chapa){
-              listado.erase(listado.begin()+i);//doy de baja al auto, lo elimino del vector
+
               try{
+              listado.erase(listado.begin()+i);//doy de baja al auto, lo elimino del vector
               controlador.darBajaAuto(marca,modelo,chapa);
+              contador--;
               }
               catch (data_base_actualizar &exc){
                   QMessageBox::information(this,"Error",exc.what());

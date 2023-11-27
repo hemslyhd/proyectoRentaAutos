@@ -28,12 +28,13 @@ public:
     void mandarAutoMantenimiento(QString marca , QString modelo,QString chapa , int cantMant);
     void darBajaAuto(QString marca , QString modelo,QString chapa);
     //agregar nombre de empresa y dinero
-    void agregarNombreDineroEmpresa(QString nombre, int dinero);
+    void agregarNombreDineroCantidadEmpresa(QString nombre, int dinero,int cantidad);
     bool verificarEmpresa();
     void limpiarTablaEmpresa();
     void exportarDineroEmpresa(long long &dineroEmpresa);
     void exportarNombreEmpresa(QString &nombre);
     void modificarDineroEmpresa(long long valor , QString nombre);
+    void exportarCantAutos(int &cant);
 };
 
 #endif // CONTROLADOR_H

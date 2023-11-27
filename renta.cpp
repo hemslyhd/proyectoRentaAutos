@@ -4,11 +4,12 @@ Renta::Renta()
 {
 
 }
-Renta::Renta(QString nombre,double dinero){
+Renta::Renta(QString nombre, double dinero, int cantAutos){
 
     setNombreEmpresa(nombre);
-    ;
+
     setDineroTotal(dinero);
+    setCantTotalAutos(cantAutos);
 }
 
 Renta::~Renta()
@@ -30,4 +31,6 @@ void Renta::setDineroTotal(double dinero){
         throw valor_invalido();
     }
 }
-
+void Renta::setCantTotalAutos(int cantAutos){
+    this->cantTotalAuto=cantAutos;
+}

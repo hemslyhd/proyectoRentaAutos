@@ -158,21 +158,20 @@ void Controlador::darBajaAuto(QString marca, QString modelo, QString chapa)
 }
 
 //Agregar nombre empresa y dinero a tabla empresa
-void Controlador::agregarNombreDineroEmpresa(QString nombre, int dinero)
+void Controlador::agregarNombreDineroCantidadEmpresa(QString nombre, int dinero ,int valor)
 {
     QSqlQuery query(this->db);
-    query.prepare("INSERT INTO Empresa(Nombre,Dinero) VALUES (:Nombre,:Dinero)");
+    query.prepare("INSERT INTO Empresa(Nombre,Dinero,CantidadAutos) VALUES (:Nombre,:Dinero,:CantidadAutos)");
     query.bindValue(":Nombre",nombre);
     query.bindValue(":Dinero",dinero);
+    query.bindValue(":CantidadAutos",valor);
     if(query.exec()){
         qDebug()<<"se introdujo info de la empresa ";
     }
     else{
-        qDebug()<<"no se introdujo info de la empresa";
+        qDebug()<<"no se introdujo info de la empresa"<<query.lastError().text();
     }
-
 }
-
 
 //verificar empresa
 bool Controlador::verificarEmpresa()
@@ -256,6 +255,20 @@ void Controlador::modificarDineroEmpresa(long long valor, QString nombre)
 //                 qDebug()<<" no se modifico el dinero"<<query.lastError().text();
                 throw modificar_dinero_empresa();
             }
+}
+//exportar cantidad de autos
+void Controlador::exportarCantAutos(int &cant)
+{
+    QSqlQuery query(this->db);
+           if(query.exec("SELECT * FROM Empresa") == false)
+                  {
+               throw data_base_error_cantAutos();
+                  }
+           else{
+               while(query.next()){
+                  cant=query.value("CantidadAutos").toInt();
+               }
+           }
 }
 
 
