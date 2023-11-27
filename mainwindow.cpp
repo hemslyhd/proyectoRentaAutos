@@ -36,6 +36,10 @@ MainWindow::MainWindow(QWidget *parent):
             QMessageBox::information(this,"Error",exc.what());
         }
         qDebug()<<"sirvio";
+        //para que me salga cuando se crea por primera vez la empresa
+        QString cadena=empresa.getNombreEmpresa();
+        cadena+=" empresa especializada en la renta de autos.";
+        ui->lineEditPiePagina->setText(cadena);//mostrar info en la parte del final de la aplicacion
     }
     else{
         this->pantallaBienvenida->show();
