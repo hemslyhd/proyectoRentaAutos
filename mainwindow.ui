@@ -443,7 +443,7 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Renta de auto v1.0</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <widget class="QTabWidget" name="tabWidget">
@@ -1677,7 +1677,14 @@
     </property>
     <addaction name="actionBorrar_datos_del_sistema"/>
    </widget>
+   <widget class="QMenu" name="menuSobre_Nosotros">
+    <property name="title">
+     <string>Sobre Nosotros</string>
+    </property>
+    <addaction name="actionQuienes_Somos"/>
+   </widget>
    <addaction name="menuLimpiar_datos"/>
+   <addaction name="menuSobre_Nosotros"/>
   </widget>
   <action name="actionA_adir_un_auto">
    <property name="text">
@@ -1709,6 +1716,11 @@
    </property>
    <property name="statusTip">
     <string>Limpiar toda la informacion guardada en la empresa</string>
+   </property>
+  </action>
+  <action name="actionQuienes_Somos">
+   <property name="text">
+    <string>Quienes Somos</string>
    </property>
   </action>
  </widget>

@@ -232,7 +232,6 @@ void Controlador::exportarNombreEmpresa(QString &nombre)
     QSqlQuery query(this->db);
            if(query.exec("SELECT * FROM Empresa") == false)
                   {
-
                throw data_base_nombre_empresa();
                   }
            else{

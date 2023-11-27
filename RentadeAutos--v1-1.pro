@@ -18,17 +18,20 @@ SOURCES += main.cpp\
     renta.cpp \
     auto.cpp \
     bienvenida.cpp \
-    controlador.cpp
+    controlador.cpp \
+    nosotros.cpp
 
 HEADERS  += mainwindow.h \
     renta.h \
     auto.h \
     bienvenida.h \
     controlador.h \
-    misexcepciones.h
+    misexcepciones.h \
+    nosotros.h
 
 FORMS    += mainwindow.ui \
-    bienvenida.ui
+    bienvenida.ui \
+    nosotros.ui
 
 RESOURCES += \
     imagen.qrc

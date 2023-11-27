@@ -5,6 +5,7 @@
 #include<QMessageBox>
 #include<QStringList>
 #include<bienvenida.h>
+#include<nosotros.h>
 #include<auto.h>
 #include<renta.h>
 #include<controlador.h>
@@ -60,6 +61,8 @@ private slots:
 
 
 
+    void on_actionQuienes_Somos_triggered();
+
 private:
       Ui::MainWindow *ui;
       //Bienvenida *pantallaBienvenida = new Bienvenida(this);
@@ -69,6 +72,8 @@ private:
       //QVector<Renta> empresa;
       Renta empresa;
       Bienvenida  *pantallaBienvenida = new Bienvenida (empresa,controlador,this);
+
+      Nosotros *pantallaNosotros= new Nosotros(this);
 
       QString nombreEmpresa;
       long long dineroEmpresa;

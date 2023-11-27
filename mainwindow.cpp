@@ -227,7 +227,7 @@ void MainWindow::on_pushButtonRentar_clicked()
          controlador.modificarDineroEmpresa(dineroEmpresa,nombreEmpresa);
          empresa.setDineroTotal(dineroEmpresa);
          QString mensaje="Se ha rentado el auto ";
-         mensaje.append( marca + " modelo "+ modelo + " y chapa "+ " por " +QString::number(dias)+ " dias.");
+         mensaje.append( marca + " modelo "+ modelo + " y chapa "+ chapa + " por " +QString::number(dias)+ " dias.");
          QMessageBox::information(this,"Exitos",mensaje);
         }
          catch(data_base_actualizar &exc){
@@ -289,7 +289,7 @@ void MainWindow::on_pushButtonRecibir_clicked()
         ui->comboBoxRentarAuto->addItem(cadena);
 
         QString mensaje="Se ha entregado el auto ";
-        mensaje.append( marca + " modelo "+ modelo + " y chapa "+ " con " +QString::number(kmRecorridos)+ " km recorridos.");
+        mensaje.append( marca + " modelo "+ modelo + " y chapa "+ chapa + " con " +QString::number(kmRecorridos)+ " km recorridos.");
         QMessageBox::information(this,"Exitos",mensaje);
         }
         catch (data_base_actualizar &exc){
@@ -641,3 +641,8 @@ void MainWindow::on_tabWidget_tabBarClicked(int index)
 }
 
 
+
+void MainWindow::on_actionQuienes_Somos_triggered()
+{   this->hide();
+    this->pantallaNosotros->show();
+}
